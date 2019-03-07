@@ -9,6 +9,7 @@ const dist = require('../lib/dist');
 const childProcess = require('child_process');
 
 const fixturePath = path.join(process.cwd(), 'test', 'fixture');
+const pagesPath = path.join(fixturePath, 'pages');
 const tmpPath = path.join(process.cwd(), 'test', 'tmp');
 
 function cleanTmp(cb) {
@@ -36,8 +37,8 @@ function assertRenderedPage(html, config) {
 }
 
 function assertSite() {
-  return fs.readdirSync(fixturePath, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory() && (dirent.name !== 'layouts'))
+  return fs.readdirSync(pagesPath, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
     .map(dirent => {
       const uri = (dirent.name === 'default') ? '' : '/'+dirent.name;
 
@@ -45,7 +46,7 @@ function assertSite() {
         const page = { 
           dirent, 
           html: res.data,
-          config: require(path.join(fixturePath, dirent.name, 'page.json')),
+          config: require(path.join(pagesPath, dirent.name, 'page.json')),
         };
         assertRenderedPage(page.html, page.config);
       });
@@ -65,6 +66,13 @@ describe('development server', function() {
     return Promise.all(assertSite());
   });
 
+  it('serves static assets from /assets', function() {
+    return axios.get('http://localhost:1337/assets/foobar.js')
+      .then(res => {
+        assert(res.data.includes('alert'));
+      });
+  });
+
   after(done => {
     server.close();
     done();
@@ -80,7 +88,7 @@ describe('dist', function() {
     return dist(fixturePath, tmpPath).then(pages => {
       pages.forEach(page => {
         const html = fs.readFileSync(page.__writePath, 'utf8');
-        const config = require(path.join(fixturePath, page.__name, 'page.json'));
+        const config = require(path.join(pagesPath, page.__name, 'page.json'));
         assertRenderedPage(html, config);
       });
     });
