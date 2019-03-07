@@ -1,6 +1,6 @@
 {
   "name": "static-shack",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "index.js",
   "repository": "git@github.com:tjdavenport/static-shack.git",
   "author": "tjdavenport <tjdavenport2@gmail.com>",
