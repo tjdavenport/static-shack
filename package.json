@@ -9,9 +9,11 @@
     "axios": "^0.18.0",
     "cheerio": "^1.0.0-rc.2",
     "express": "^4.16.4",
-    "mocha": "^6.0.2"
+    "mocha": "^6.0.2",
+    "rimraf": "^2.6.3"
   },
   "dependencies": {
-    "ejs": "^2.6.1"
+    "ejs": "^2.6.1",
+    "node-commander": "^1.0.0"
   }
 }
