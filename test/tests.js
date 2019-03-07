@@ -8,6 +8,7 @@ const cheerio = require('cheerio');
 const dist = require('../lib/dist');
 const childProcess = require('child_process');
 
+const fsp = fs.promises;
 const fixturePath = path.join(process.cwd(), 'test', 'fixture');
 const pagesPath = path.join(fixturePath, 'pages');
 const tmpPath = path.join(process.cwd(), 'test', 'tmp');
@@ -81,17 +82,28 @@ describe('development server', function() {
 });
 
 describe('dist', function() {
+  let pages;
 
-  it('compiles and writes pages to disk', function() {
+  before(async () => {
+    pages = await dist(fixturePath, tmpPath);
+  });
+
+  it('compiles and writes pages to disk', function(done) {
     const projectConfig = require(path.join(fixturePath, 'page.json'));
-
-    return dist(fixturePath, tmpPath).then(pages => {
-      pages.forEach(page => {
-        const html = fs.readFileSync(page.__writePath, 'utf8');
-        const config = require(path.join(pagesPath, page.__name, 'page.json'));
-        assertRenderedPage(html, config);
-      });
+    pages.forEach(page => {
+      const html = fs.readFileSync(page.__writePath, 'utf8');
+      const config = require(path.join(pagesPath, page.__name, 'page.json'));
+      assertRenderedPage(html, config);
     });
+    done();
+  });
+
+  it('copies assets over to dist', async function() {
+    const script = await fsp.readFile(path.join(tmpPath, 'assets', 'foobar.js'), 'utf8');
+    const styles = await fsp.readFile(path.join(tmpPath, 'assets', 'styles.css'), 'utf8');
+
+    assert(script.includes('alert'));
+    assert(styles.includes('font-size'));
   });
 
   after(done => {
@@ -102,9 +114,9 @@ describe('dist', function() {
 
 describe('cli tool', function() {
 
-  function spawnStatic(args, readyStr) {
+  function spawnStatic(args, readyStr, options = {}) {
     return new Promise((resolve, reject) => {
-      const proc = childProcess.spawn('node', args);
+      const proc = childProcess.spawn('node', args, options);
       proc.stdout.on('data', data => {
         if (data.toString().includes(readyStr)) {
           resolve(proc);
@@ -155,7 +167,12 @@ describe('cli tool', function() {
       });
   });
 
-  after(done => {
+  it('supports an init command', async function() {
+    await spawnStatic([path.join('..', '..', 'index.js'), 'init'], 'Generated site', { cwd: tmpPath })
+    await fsp.access(path.join(tmpPath, 'layouts', 'default.html'));
+  });
+
+  afterEach(done => {
     cleanTmp(done);
   });
 

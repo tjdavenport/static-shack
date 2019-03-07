@@ -1,7 +1,9 @@
 const path = require('path');
 const app = require('./lib/app');
 const dist = require('./lib/dist');
+const fsp = require('fs').promises;
 const program = require('commander');
+const layout = require('./lib/layout');
 
 program
   .command('dev')
@@ -31,6 +33,23 @@ program
         console.log(err);
         process.exit(1);
       });
+  });
+
+program
+  .command('init')
+  .action(async cmd => {
+    try {
+      await Promise.all(['assets', 'layouts', 'pages'].map(folderName => {
+        console.log(`Creating ${folderName} directory`);
+        return fsp.mkdir(path.join(process.cwd(), folderName));
+      }));
+      await fsp.writeFile(path.join(process.cwd(), 'layouts', 'default.html'), layout);
+      await fsp.writeFile(path.join(process.cwd(), 'page.json'), '{ "layout": "default.html" }');
+      console.log('Generated site');
+    } catch (err) {
+      console.log(err);
+      process.exit(1);
+    }
   });
 
 program.parse(process.argv);
