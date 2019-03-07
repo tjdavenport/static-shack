@@ -5,7 +5,9 @@
   "repository": "git@github.com:tjdavenport/static-shack.git",
   "author": "tjdavenport <tjdavenport2@gmail.com>",
   "license": "MIT",
-  "bin": {},
+  "bin": {
+    "static-shack": "./bin/static-shack"
+  },
   "devDependencies": {
     "axios": "^0.18.0",
     "cheerio": "^1.0.0-rc.2",
