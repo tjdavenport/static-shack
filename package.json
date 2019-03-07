@@ -5,15 +5,17 @@
   "repository": "git@github.com:tjdavenport/static-shack.git",
   "author": "tjdavenport <tjdavenport2@gmail.com>",
   "license": "MIT",
+  "bin": {},
   "devDependencies": {
     "axios": "^0.18.0",
     "cheerio": "^1.0.0-rc.2",
-    "express": "^4.16.4",
     "mocha": "^6.0.2",
-    "rimraf": "^2.6.3"
+    "rimraf": "^2.6.3",
+    "http-server": "^0.11.1"
   },
   "dependencies": {
+    "commander": "^2.19.0",
     "ejs": "^2.6.1",
-    "node-commander": "^1.0.0"
+    "express": "^4.16.4"
   }
 }

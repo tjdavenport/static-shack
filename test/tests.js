@@ -6,9 +6,23 @@ const assert = require('assert');
 const app = require('../lib/app');
 const cheerio = require('cheerio');
 const dist = require('../lib/dist');
+const childProcess = require('child_process');
 
 const fixturePath = path.join(process.cwd(), 'test', 'fixture');
 const tmpPath = path.join(process.cwd(), 'test', 'tmp');
+
+function cleanTmp(cb) {
+  const dirents = fs.readdirSync(tmpPath, { withFileTypes: true });
+
+  dirents.forEach(dirent => {
+    if (dirent.isDirectory()) {
+      rimraf.sync(path.join(tmpPath, dirent.name))
+    } else {
+      fs.unlinkSync(path.join(tmpPath, dirent.name));
+    }
+  });
+  cb();
+}
 
 function assertRenderedPage(html, config) {
   const $ = cheerio.load(html);
@@ -21,6 +35,24 @@ function assertRenderedPage(html, config) {
   }
 }
 
+function assertSite() {
+  return fs.readdirSync(fixturePath, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory() && (dirent.name !== 'layouts'))
+    .map(dirent => {
+      const uri = (dirent.name === 'default') ? '' : '/'+dirent.name;
+
+      return axios.get(`http://localhost:1337${uri}`).then(res => {
+        const page = { 
+          dirent, 
+          html: res.data,
+          config: require(path.join(fixturePath, dirent.name, 'page.json')),
+        };
+        assertRenderedPage(page.html, page.config);
+      });
+    });
+}
+
+
 describe('development server', function() {
   let server, staticShock;
 
@@ -30,25 +62,7 @@ describe('development server', function() {
   });
 
   it('serves rendered pages', function() {
-    const getters = [];
-
-    fs.readdirSync(fixturePath, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory() && (dirent.name !== 'layouts'))
-      .forEach(dirent => {
-        getters.push(axios.get(`http://localhost:1337/${dirent.name}`).then(res => {
-          return { 
-            dirent, 
-            html: res.data,
-            config: require(path.join(fixturePath, dirent.name, 'page.json')),
-          };
-        }));
-      });
-
-    return Promise.all(getters).then(gets => {
-      gets.forEach(({ dirent, html, config }) => {
-        assertRenderedPage(html, config);
-      });
-    })
+    return Promise.all(assertSite());
   });
 
   after(done => {
@@ -73,22 +87,68 @@ describe('dist', function() {
   });
 
   after(done => {
-    const dirents = fs.readdirSync(tmpPath, { withFileTypes: true });
-
-    dirents.forEach(dirent => {
-      if (dirent.isDirectory()) {
-        rimraf.sync(path.join(tmpPath, dirent.name))
-      } else {
-        fs.unlinkSync(path.join(tmpPath, dirent.name));
-      }
-    });
-
-    done();
+    cleanTmp(done);
   });
 
 });
 
+describe('cli tool', function() {
 
+  function spawnStatic(args, readyStr) {
+    return new Promise((resolve, reject) => {
+      const proc = childProcess.spawn('node', args);
+      proc.stdout.on('data', data => {
+        if (data.toString().includes(readyStr)) {
+          resolve(proc);
+        }
+      });
+      proc.on('error', err => {
+        reject(err);
+      });
+    });
+  }
 
+  function spawnHttp() {
+    return new Promise((resolve, reject) => {
+      const proc = childProcess.spawn('npx', ['http-server', '-p', '1337'], {
+        cwd: tmpPath,
+      });
+      proc.stdout.on('data', data => {
+        if (data.toString().includes('1337')) {
+          resolve(proc);
+        }
+      });
+      proc.on('error', err => {
+        reject(err);
+      });
+    });
+  }
 
+  it('supports dev command', function() {
+    return spawnStatic(['index.js', 'dev', '-s', 'test/fixture'], 'Listening')
+      .then(proc => {
+        return Promise.all(assertSite())
+          .finally(() => {
+            proc.kill();
+          });
+      });
+  });
 
+  it('supports a dist command', function() {
+    return spawnStatic(['index.js', 'dist', '-d', tmpPath, '-s', fixturePath], 'Wrote site')
+      .then(proc => {
+        return spawnHttp();
+      })
+      .then(proc => {
+        return Promise.all(assertSite())
+          .finally(() => {
+            proc.kill();
+          });
+      });
+  });
+
+  after(done => {
+    cleanTmp(done);
+  });
+
+});
