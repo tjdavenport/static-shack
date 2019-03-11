@@ -123,6 +123,7 @@ describe('cli tool', function() {
         }
       });
       proc.on('error', err => {
+        console.log(err);
         reject(err);
       });
     });
@@ -167,9 +168,11 @@ describe('cli tool', function() {
       });
   });
 
-  it('supports an init command', async function() {
+  it('supports init and page commands', async function() {
     await spawnStatic([path.join('..', '..', 'index.js'), 'init'], 'Generated site', { cwd: tmpPath })
+    await spawnStatic([path.join('..', '..', 'index.js'), 'page', 'foo'], 'Added page', { cwd: tmpPath })
     await fsp.access(path.join(tmpPath, 'layouts', 'default.html'));
+    await fsp.access(path.join(tmpPath, 'pages', 'foo', 'index.html'));
   });
 
   afterEach(done => {

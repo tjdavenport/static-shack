@@ -41,11 +41,25 @@ program
     try {
       await Promise.all(['assets', 'layouts', 'pages'].map(folderName => {
         console.log(`Creating ${folderName} directory`);
-        return fsp.mkdir(path.join(process.cwd(), folderName));
+        return fsp.mkdir(folderName);
       }));
-      await fsp.writeFile(path.join(process.cwd(), 'layouts', 'default.html'), layout);
-      await fsp.writeFile(path.join(process.cwd(), 'page.json'), '{ "layout": "default.html" }');
+      await fsp.writeFile(path.join('layouts', 'default.html'), layout);
+      await fsp.writeFile('page.json', '{ "layout": "default.html" }');
       console.log('Generated site');
+    } catch (err) {
+      console.log(err);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('page <name>')
+  .action(async (name, cmd) => {
+    try {
+      await fsp.mkdir(path.join('pages', name));
+      await fsp.writeFile(path.join('pages', name, 'index.html'), '<p>foo</p><p>bar</p>');
+      await fsp.writeFile(path.join('pages', name, 'page.json'), '{\n}');
+      console.log('Added page');
     } catch (err) {
       console.log(err);
       process.exit(1);
