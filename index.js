@@ -1,7 +1,7 @@
 const path = require('path');
+const fsx = require('fs-extra');
 const app = require('./lib/app');
 const dist = require('./lib/dist');
-const fsp = require('fs').promises;
 const program = require('commander');
 const layout = require('./lib/layout');
 
@@ -18,6 +18,7 @@ program
 
 program
   .command('dist')
+  .description('Compile and write site. WILL EMPTY DESTINATION DIRECTORY!')
   .option('-s, --source <path>', 'source path of static site project')
   .option('-d, --dest <path>', `destination to place compiled site, defaults to ${path.join(process.cwd(), 'dist')}`)
   .action(cmd => {
@@ -41,10 +42,10 @@ program
     try {
       await Promise.all(['assets', 'layouts', 'pages'].map(folderName => {
         console.log(`Creating ${folderName} directory`);
-        return fsp.mkdir(folderName);
+        return fsx.mkdir(folderName);
       }));
-      await fsp.writeFile(path.join('layouts', 'default.html'), layout);
-      await fsp.writeFile('page.json', '{ "layout": "default.html" }');
+      await fsx.writeFile(path.join('layouts', 'default.html'), layout);
+      await fsx.writeFile('page.json', '{ "layout": "default.html" }');
       console.log('Generated site');
     } catch (err) {
       console.log(err);
@@ -56,9 +57,9 @@ program
   .command('page <name>')
   .action(async (name, cmd) => {
     try {
-      await fsp.mkdir(path.join('pages', name));
-      await fsp.writeFile(path.join('pages', name, 'index.html'), '<p>foo</p><p>bar</p>');
-      await fsp.writeFile(path.join('pages', name, 'page.json'), '{\n}');
+      await fsx.mkdir(path.join('pages', name));
+      await fsx.writeFile(path.join('pages', name, 'index.html'), '<p>foo</p><p>bar</p>');
+      await fsx.writeFile(path.join('pages', name, 'page.json'), '{\n}');
       console.log('Added page');
     } catch (err) {
       console.log(err);
